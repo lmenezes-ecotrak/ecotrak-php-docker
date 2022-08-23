@@ -1,0 +1,58 @@
+version: "3.1"
+services:
+    redis:
+        image: redis:3.0
+        container_name: redis
+        expose:
+            - 6379
+    php-fpm:
+        image: webdevops/php-nginx-dev:7.4
+        container_name: ecotrak
+        working_dir: /projects/ecotrak-php
+        volumes:
+            - ./:/projects/ecotrak-php
+            - './deploy/docker_config/php-nginx/nginx/ssl/cert.pem:/opt/docker/etc/nginx/ssl/server.crt'
+            - './deploy/docker_config/php-nginx/nginx/ssl/key.pem:/opt/docker/etc/nginx/ssl/server.key'
+        environment:
+            - WEB_DOCUMENT_ROOT=/projects/ecotrak-php/app/webroot
+            - EB_ENVIRONMENT_NAME=docker-compose-local
+            - ECOTRAK_DB_DEFAULT_HOST=ecotrak-mysql
+            - ECOTRAK_DB_DEFAULT_LOGIN=my_app
+            - ECOTRAK_DB_DEFAULT_PASSWORD=secret
+            - ECOTRAK_DB_DEFAULT_DATABASE=ecotrak
+            - ECOTRAK_DB_READONLY_HOST=ecotrak-mysql
+            - ECOTRAK_DB_READONLY_LOGIN=my_app
+            - ECOTRAK_DB_READONLY_PASSWORD=secret
+            - ECOTRAK_DB_READONLY_DATABASE=ecotrak
+            - REDIS_SESSIONS_ENDPOINT=redis
+            - RDS_HOSTNAME=ecotrak-mysql
+            - RDS_DB_NAME=ecotrak
+            - RDS_READONLY_HOSTNAME=ecotrak-mysql
+            - RDS_USERNAME=my_app
+            - RDS_PASSWORD=secret
+            - XDEBUG_CLIENT_HOST=host.docker.internal
+            - XDEBUG_CLIENT_PORT=9003
+            - XDEBUG_START_WITH_REQUEST=yes
+            - PHP_DEBUGGER=xdebug
+        ports:
+            - "8081:80"
+            - "8082:443"
+        dns:
+            - 8.8.8.8
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+    mysql:
+        image: mysql:5.7
+        container_name: ecotrak-mysql
+        working_dir: /app
+        volumes:
+            - .:/app
+            - ./tmp/data/mysql_db:/var/lib/mysql
+        environment:
+            - MYSQL_ROOT_PASSWORD=password
+            - MYSQL_DATABASE=ecotrak
+            - MYSQL_USER=my_app
+            - MYSQL_PASSWORD=secret
+        command: mysqld --character-set-server=utf8 --init-connect='SET NAMES UTF8;'
+        ports:
+            - "8306:3306"
